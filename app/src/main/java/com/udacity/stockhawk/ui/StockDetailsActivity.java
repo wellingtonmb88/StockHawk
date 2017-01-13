@@ -1,32 +1,39 @@
 package com.udacity.stockhawk.ui;
 
+import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 
-import com.github.mikephil.charting.charts.BarChart;
+import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.AxisBase;
+import com.github.mikephil.charting.components.Legend;
 import com.github.mikephil.charting.components.XAxis;
-import com.github.mikephil.charting.data.BarData;
-import com.github.mikephil.charting.data.BarDataSet;
-import com.github.mikephil.charting.data.BarEntry;
+import com.github.mikephil.charting.components.YAxis;
+import com.github.mikephil.charting.data.Entry;
+import com.github.mikephil.charting.data.LineData;
+import com.github.mikephil.charting.data.LineDataSet;
 import com.github.mikephil.charting.formatter.IAxisValueFormatter;
-import com.github.mikephil.charting.interfaces.datasets.IBarDataSet;
+import com.github.mikephil.charting.formatter.LargeValueFormatter;
 import com.github.mikephil.charting.utils.ColorTemplate;
 import com.udacity.stockhawk.R;
+import com.udacity.stockhawk.data.Contract;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 
 public class StockDetailsActivity extends AppCompatActivity {
 
-    @BindView(R.id.chart1)
-    BarChart barChart;
+    @BindView(R.id.chart)
+    LineChart lineChart;
 
-    Typeface mTfLight = Typeface.DEFAULT_BOLD;
+    private final Typeface defaultBold = Typeface.DEFAULT_BOLD;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,134 +42,110 @@ public class StockDetailsActivity extends AppCompatActivity {
 
         ButterKnife.bind(this);
 
-        barChart.getDescription().setEnabled(false);
+        final String history = getIntent().getExtras()
+                .getString(Contract.Quote.COLUMN_HISTORY);
 
-        // if more than 60 entries are displayed in the chart, no values will be
-        // drawn
-        barChart.setMaxVisibleValueCount(40);
+        if (history != null) {
 
-        // scaling can now only be done on x- and y-axis separately
-        barChart.setPinchZoom(false);
+            setupLineDataEntry(history);
+            setupLegend();
+            setupLeftYAxis();
+            setupRightYAxis();
 
-        barChart.setDrawGridBackground(false);
-        barChart.setDrawBarShadow(true);
+            lineChart.getDescription().setEnabled(false);
+            lineChart.setMaxVisibleValueCount(10);
+            lineChart.setPinchZoom(false);
+            lineChart.setDrawGridBackground(false);
 
-        barChart.setDrawValueAboveBar(false);
-        barChart.setHighlightFullBarEnabled(false);
+            lineChart.invalidate();
+        }
+    }
 
-        List<BarEntry> entriesGroup1 = new ArrayList<>();
-        List<BarEntry> entriesGroup2 = new ArrayList<>();
-        List<BarEntry> entriesGroup3 = new ArrayList<>();
-        List<BarEntry> entriesGroup4 = new ArrayList<>();
+    private void setupLineDataEntry(final String history) {
+        final String[] historiesArray = history.split("\n");
+        final int lastElement = historiesArray.length > 10 ? 10 : historiesArray.length;
+        final String[] histories = Arrays.copyOfRange(historiesArray, 0, lastElement);
 
-        float startYear = 1979f;
-        int count = 1;
-        for (int i = (int) startYear; i < startYear + 5; i++) {
+        Arrays.sort(histories);
 
-            entriesGroup1.add(new BarEntry(i, 100 + count));
-            entriesGroup2.add(new BarEntry(i, 120 + count));
-            entriesGroup3.add(new BarEntry(i, 140 + count));
-            entriesGroup4.add(new BarEntry(i, 160 + count));
-            count += 10;
+        final List<Entry> entries = new ArrayList<>();
+        final List<String> labels = new ArrayList<>();
+
+        for (int i = 0; i < lastElement; i++) {
+
+            final String data = histories[i];
+            final String[] splitData = data.split(",");
+            long time = Long.valueOf(splitData[0]);
+            float price = Float.valueOf(splitData[1]);
+
+            final String dateFormat = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                    .format(time);
+
+            entries.add(new Entry(i, price));
+
+            labels.add(dateFormat);
         }
 
-        BarDataSet set1 = new BarDataSet(entriesGroup1, "Group 1");
-        BarDataSet set2 = new BarDataSet(entriesGroup2, "Group 2");
-        BarDataSet set3 = new BarDataSet(entriesGroup3, "Group 3");
-        BarDataSet set4 = new BarDataSet(entriesGroup4, "Group 4");
+        final LineDataSet lineDataSet = new LineDataSet(entries, getString(R.string.num_of_prices_chart_entries));
+        lineDataSet.setDrawFilled(true);
+        lineDataSet.setColors(ColorTemplate.COLORFUL_COLORS);
 
-        set1.setColor(ColorTemplate.MATERIAL_COLORS[2]);
-        set2.setColor(ColorTemplate.MATERIAL_COLORS[1]);
-        set3.setColor(ColorTemplate.JOYFUL_COLORS[0]);
-        set4.setColor(ColorTemplate.VORDIPLOM_COLORS[3]);
+        LineData data = new LineData(lineDataSet);
+        data.setValueTextColor(Color.WHITE);
+        data.setValueTextSize(12f);
 
-        ArrayList<IBarDataSet> dataSets = new ArrayList<>();
-        dataSets.add(set1);
-        dataSets.add(set2);
-        dataSets.add(set3);
-        dataSets.add(set4);
+        lineChart.setData(data);
 
-        float groupSpace = 0.1f;
-        float barSpace = 0.05f; // x4 DataSet
-        float barWidth = 0.1f; // x4 DataSet
-        // (0.02 + 0.45) * 2 + 0.06 = 1.00 -> interval per "group"
+        setupRightXAxis(labels);
+    }
 
-        BarData data = new BarData(dataSets);
-        data.setBarWidth(barWidth); // set the width of each bar
-//        data.setValueTextColor(Color.WHITE);
+    private void setupLegend() {
+        final Legend legend = lineChart.getLegend();
+        legend.setVerticalAlignment(Legend.LegendVerticalAlignment.BOTTOM);
+        legend.setHorizontalAlignment(Legend.LegendHorizontalAlignment.RIGHT);
+        legend.setOrientation(Legend.LegendOrientation.HORIZONTAL);
+        legend.setDrawInside(false);
+        legend.setFormSize(8f);
+        legend.setTypeface(defaultBold);
+        legend.setTextColor(Color.WHITE);
+        legend.setFormToTextSpace(4f);
+        legend.setXEntrySpace(6f);
+    }
 
-        barChart.setData(data);
-        barChart.setDrawBarShadow(true);
-        barChart.groupBars(startYear, groupSpace, barSpace); // perform the "explicit" grouping
+    private void setupRightXAxis(final List<String> labels) {
 
-//        barChart.setFitBars(true);
-
-//        Legend l = barChart.getLegend();
-//        l.setVerticalAlignment(Legend.LegendVerticalAlignment.BOTTOM);
-//        l.setHorizontalAlignment(Legend.LegendHorizontalAlignment.RIGHT);
-//        l.setOrientation(Legend.LegendOrientation.HORIZONTAL);
-//        l.setDrawInside(false);
-//        l.setFormSize(8f);
-//        l.setTypeface(mTfLight);
-//        l.setFormToTextSpace(4f);
-//        l.setXEntrySpace(6f);
-//
-        XAxis xAxis = barChart.getXAxis();
-        xAxis.setTypeface(mTfLight);
-        xAxis.setGranularity(0.5f);
-
-        // restrict the x-axis range
-        xAxis.setAxisMinimum(startYear);
-
-        // barData.getGroupWith(...) is a helper that calculates the width each group needs based on the provided parameters
-//        xAxis.setAxisMaximum(startYear + barChart.getBarData().getGroupWidth(groupSpace, barSpace) * dataSets.size());
+        final XAxis xAxis = lineChart.getXAxis();
+        xAxis.setTypeface(defaultBold);
+        xAxis.setGranularity(1f);
+        xAxis.setAxisMinimum(0);
+        xAxis.setTextColor(Color.WHITE);
         xAxis.setCenterAxisLabels(false);
         xAxis.setDrawAxisLine(false);
         xAxis.setValueFormatter(new IAxisValueFormatter() {
             @Override
             public String getFormattedValue(float value, AxisBase axis) {
-                return String.valueOf((int) Math.floor(value));
+                return labels.get((int) Math.abs(value));
             }
         });
-////
-//        YAxis leftAxis = barChart.getAxisLeft();
-//        leftAxis.setTypeface(mTfLight);
-//        leftAxis.setValueFormatter(new LargeValueFormatter());
-//        leftAxis.setDrawGridLines(false);
-//        leftAxis.setSpaceTop(1f);
-//        leftAxis.setAxisMinimum(0); // this replaces setStartAtZero(true)
-//
-//        barChart.getAxisRight().setEnabled(false);
-
-        barChart.invalidate(); // refresh
     }
 
-    private int[] getColors() {
-
-        int stacksize = 2;
-
-        // have as many colors as stack-values per entry
-        int[] colors = new int[stacksize];
-
-        for (int i = 0; i < colors.length; i++) {
-            colors[i] = ColorTemplate.MATERIAL_COLORS[i];
-        }
-
-        return colors;
+    private void setupLeftYAxis() {
+        final YAxis leftAxis = lineChart.getAxisLeft();
+        leftAxis.setTypeface(defaultBold);
+        leftAxis.setValueFormatter(new LargeValueFormatter());
+        leftAxis.setDrawGridLines(false);
+        leftAxis.setSpaceTop(5f);
+        leftAxis.setTextColor(Color.WHITE);
+        leftAxis.setAxisMinimum(0);
     }
 
-    static class MyData {
-
-        float value1;
-        float value2;
-        float value3;
-        float value4;
-
-        public MyData(float value1, float value2, float value3, float value4) {
-            this.value1 = value1;
-            this.value2 = value2;
-            this.value3 = value3;
-            this.value4 = value4;
-        }
+    private void setupRightYAxis() {
+        final YAxis rightAxis = lineChart.getAxisRight();
+        rightAxis.setTypeface(defaultBold);
+        rightAxis.setValueFormatter(new LargeValueFormatter());
+        rightAxis.setDrawGridLines(false);
+        rightAxis.setSpaceTop(5f);
+        rightAxis.setTextColor(Color.WHITE);
+        rightAxis.setAxisMinimum(0);
     }
 }
