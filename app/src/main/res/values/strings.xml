@@ -29,9 +29,11 @@
     <string name="toast_stock_added_no_connectivity">Symbol %s added. Will refresh when network available.</string>
     <string name="toast_no_connectivity">Will refresh when network available.</string>
     <string name="num_of_prices_chart_entries"># of prices</string>
-    <string name="error_quote_not_found_message">Quote not found!</string>
+    <string name="error_stock_not_found_message">Stock not found!</string>
     <string name="add_new_stock">Add new Stock!</string>
     <string name="dialog_action_ok">OK</string>
     <string name="dialog_title_no_network_connection">Network Error!</string>
+    <string name="title_widget_detail">Stock Details</string>
+    <string name="empty_stock_list">Empty Stock list!</string>
 
 </resources>

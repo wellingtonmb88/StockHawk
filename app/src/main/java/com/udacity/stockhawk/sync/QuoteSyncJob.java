@@ -33,7 +33,7 @@ import yahoofinance.quotes.stock.StockQuote;
 public final class QuoteSyncJob {
 
     private static final int ONE_OFF_ID = 2;
-    private static final String ACTION_DATA_UPDATED = "com.udacity.stockhawk.ACTION_DATA_UPDATED";
+    public static final String ACTION_DATA_UPDATED = "com.udacity.stockhawk.ACTION_DATA_UPDATED";
     private static final int PERIOD = 300000;
     private static final int INITIAL_BACKOFF = 10000;
     private static final int PERIODIC_ID = 1;
@@ -72,7 +72,7 @@ public final class QuoteSyncJob {
                         PrefUtils.removeStock(context, symbol);
                     }
                 }
-                sendBroadcastQuoteError(context);
+                sendBroadcastStockError(context);
                 return;
             }
 
@@ -91,7 +91,7 @@ public final class QuoteSyncJob {
                         || quote.getChangeInPercent() == null
                         || stock.getHistory() == null) {
                     PrefUtils.removeStock(context, symbol);
-                    sendBroadcastQuoteError(context);
+                    sendBroadcastStockError(context);
                     continue;
                 }
 
@@ -135,9 +135,9 @@ public final class QuoteSyncJob {
         }
     }
 
-    private static void sendBroadcastQuoteError(final Context context) {
+    private static void sendBroadcastStockError(final Context context) {
         final Intent intent = new Intent(MainActivity.INTENT_FILTER);
-        intent.putExtra(MainActivity.QUOTE_MESSAGE, MainActivity.ERROR_QUOTE_NOT_FOUND);
+        intent.putExtra(MainActivity.STOCK_ERROR_MESSAGE, MainActivity.ERROR_STOCK_NOT_FOUND);
         LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
     }
 

@@ -33,14 +33,16 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import timber.log.Timber;
 
+import static com.udacity.stockhawk.sync.QuoteSyncJob.ACTION_DATA_UPDATED;
+
 public class MainActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor>,
         SwipeRefreshLayout.OnRefreshListener,
         StockAdapter.StockAdapterOnClickHandler {
 
-    public static final String QUOTE_MESSAGE =
-            "com.udacity.stockhawk.ui.MainActivity.QUOTE_MESSAGE";
-    public static final String ERROR_QUOTE_NOT_FOUND =
-            "com.udacity.stockhawk.ui.MainActivity.ERROR_QUOTE_NOT_FOUND";
+    public static final String STOCK_ERROR_MESSAGE =
+            "com.udacity.stockhawk.ui.MainActivity.STOCK_ERROR_MESSAGE";
+    public static final String ERROR_STOCK_NOT_FOUND =
+            "com.udacity.stockhawk.ui.MainActivity.ERROR_STOCK_NOT_FOUND";
     public static final String INTENT_FILTER =
             "com.udacity.stockhawk.ui.MainActivity.INTENT_FILTER";
 
@@ -59,11 +61,11 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     private BroadcastReceiver messageReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            final String message = intent.getStringExtra(QUOTE_MESSAGE);
+            final String message = intent.getStringExtra(STOCK_ERROR_MESSAGE);
 
-            if (ERROR_QUOTE_NOT_FOUND.equals(message)) {
+            if (ERROR_STOCK_NOT_FOUND.equals(message) && swipeRefreshLayout != null) {
                 swipeRefreshLayout.setRefreshing(false);
-                Toast.makeText(context, R.string.error_quote_not_found_message, Toast.LENGTH_LONG).show();
+                Toast.makeText(context, R.string.error_stock_not_found_message, Toast.LENGTH_LONG).show();
             }
         }
     };
@@ -80,6 +82,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
             cursor.moveToFirst();
             final String string = cursor.getString(Contract.Quote.POSITION_HISTORY);
             intent.putExtra(Contract.Quote.COLUMN_HISTORY, string);
+            intent.putExtra(Contract.Quote.COLUMN_SYMBOL, symbol);
             cursor.close();
             startActivity(intent);
         }
@@ -114,18 +117,24 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                 String symbol = adapter.getSymbolAtPosition(viewHolder.getAdapterPosition());
                 PrefUtils.removeStock(MainActivity.this, symbol);
                 getContentResolver().delete(Contract.Quote.makeUriForStock(symbol), null, null);
+
+                final Intent dataUpdatedIntent = new Intent(ACTION_DATA_UPDATED);
+                sendBroadcast(dataUpdatedIntent);
             }
         }).attachToRecyclerView(stockRecyclerView);
-
-        LocalBroadcastManager.getInstance(this).registerReceiver(messageReceiver,
-                new IntentFilter(INTENT_FILTER));
-
     }
 
     @Override
-    protected void onDestroy() {
+    protected void onResume() {
+        super.onResume();
+        LocalBroadcastManager.getInstance(this).registerReceiver(messageReceiver,
+                new IntentFilter(INTENT_FILTER));
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
         LocalBroadcastManager.getInstance(this).unregisterReceiver(messageReceiver);
-        super.onDestroy();
     }
 
     private boolean networkUp() {
@@ -196,13 +205,11 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         adapter.setCursor(data);
     }
 
-
     @Override
     public void onLoaderReset(Loader<Cursor> loader) {
         swipeRefreshLayout.setRefreshing(false);
         adapter.setCursor(null);
     }
-
 
     private void setDisplayModeMenuItemIcon(MenuItem item) {
         if (PrefUtils.getDisplayMode(this)

@@ -3,6 +3,7 @@ package com.udacity.stockhawk.ui;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Bundle;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 
 import com.github.mikephil.charting.charts.LineChart;
@@ -44,6 +45,16 @@ public class StockDetailsActivity extends AppCompatActivity {
 
         final String history = getIntent().getExtras()
                 .getString(Contract.Quote.COLUMN_HISTORY);
+
+        final ActionBar supportActionBar = getSupportActionBar();
+
+        if (supportActionBar != null) {
+            final String symbol = getIntent().getExtras()
+                    .getString(Contract.Quote.COLUMN_SYMBOL);
+            if (symbol != null) {
+                supportActionBar.setTitle(symbol);
+            }
+        }
 
         if (history != null) {
 
