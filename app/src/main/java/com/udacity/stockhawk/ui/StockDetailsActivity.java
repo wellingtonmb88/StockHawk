@@ -54,7 +54,7 @@ public class StockDetailsActivity extends AppCompatActivity {
 
             lineChart.getDescription().setEnabled(false);
             lineChart.setMaxVisibleValueCount(10);
-            lineChart.setPinchZoom(false);
+            lineChart.setPinchZoom(true);
             lineChart.setDrawGridBackground(false);
 
             lineChart.invalidate();
@@ -87,7 +87,8 @@ public class StockDetailsActivity extends AppCompatActivity {
         }
 
         final LineDataSet lineDataSet = new LineDataSet(entries, getString(R.string.num_of_prices_chart_entries));
-        lineDataSet.setDrawFilled(true);
+        lineDataSet.setDrawCircleHole(true);
+        lineDataSet.setCircleHoleRadius(20f);
         lineDataSet.setColors(ColorTemplate.COLORFUL_COLORS);
 
         LineData data = new LineData(lineDataSet);
@@ -116,7 +117,7 @@ public class StockDetailsActivity extends AppCompatActivity {
 
         final XAxis xAxis = lineChart.getXAxis();
         xAxis.setTypeface(defaultBold);
-        xAxis.setGranularity(0.5f);
+        xAxis.setGranularity(1f);
         xAxis.setGranularityEnabled(true);
         xAxis.setAxisMinimum(0);
         xAxis.setTextColor(Color.WHITE);
