@@ -50,17 +50,16 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         Timber.d("Symbol clicked: %s", symbol);
         final Intent intent = new Intent(this, StockDetailsActivity.class);
 
-        Cursor cursor = getContentResolver().query(Contract.Quote.makeUriForStock(symbol),
+        final Cursor cursor = getContentResolver().query(Contract.Quote.makeUriForStock(symbol),
                 null, null, null, null);
 
         if (cursor != null) {
             cursor.moveToFirst();
-            String string = cursor.getString(Contract.Quote.POSITION_HISTORY);
+            final String string = cursor.getString(Contract.Quote.POSITION_HISTORY);
             intent.putExtra(Contract.Quote.COLUMN_HISTORY, string);
+            cursor.close();
             startActivity(intent);
         }
-
-
     }
 
     @Override
