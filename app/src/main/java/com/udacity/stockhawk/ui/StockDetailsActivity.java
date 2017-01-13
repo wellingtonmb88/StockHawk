@@ -75,8 +75,8 @@ public class StockDetailsActivity extends AppCompatActivity {
 
             final String data = histories[i];
             final String[] splitData = data.split(",");
-            long time = Long.valueOf(splitData[0]);
-            float price = Float.valueOf(splitData[1]);
+            long time = Long.parseLong(splitData[0]);
+            float price = Float.parseFloat(splitData[1]);
 
             final String dateFormat = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
                     .format(time);

@@ -67,16 +67,12 @@ public final class QuoteSyncJob {
             Iterator<String> iterator = stockCopy.iterator();
 
             if (quotes.size() != stockLength) {
-
                 for (String symbol : stockArray) {
                     if (!quotes.containsKey(symbol)) {
                         PrefUtils.removeStock(context, symbol);
                     }
                 }
-
-                final Intent intent = new Intent(MainActivity.INTENT_FILTER);
-                intent.putExtra(MainActivity.QUOTE_MESSAGE, MainActivity.ERROR_QUOTE_NOT_FOUND);
-                LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
+                sendBroadcastQuoteError(context);
                 return;
             }
 
@@ -87,9 +83,17 @@ public final class QuoteSyncJob {
             while (iterator.hasNext()) {
                 String symbol = iterator.next();
 
-
                 Stock stock = quotes.get(symbol);
                 StockQuote quote = stock.getQuote();
+
+                if (quote.getPrice() == null
+                        || quote.getChange() == null
+                        || quote.getChangeInPercent() == null
+                        || stock.getHistory() == null) {
+                    PrefUtils.removeStock(context, symbol);
+                    sendBroadcastQuoteError(context);
+                    continue;
+                }
 
                 float price = quote.getPrice().floatValue();
                 float change = quote.getChange().floatValue();
@@ -114,11 +118,9 @@ public final class QuoteSyncJob {
                 quoteCV.put(Contract.Quote.COLUMN_PERCENTAGE_CHANGE, percentChange);
                 quoteCV.put(Contract.Quote.COLUMN_ABSOLUTE_CHANGE, change);
 
-
                 quoteCV.put(Contract.Quote.COLUMN_HISTORY, historyBuilder.toString());
 
                 quoteCVs.add(quoteCV);
-
             }
 
             context.getContentResolver()
@@ -128,35 +130,35 @@ public final class QuoteSyncJob {
 
             Intent dataUpdatedIntent = new Intent(ACTION_DATA_UPDATED);
             context.sendBroadcast(dataUpdatedIntent);
-
         } catch (IOException exception) {
             Timber.e(exception, "Error fetching stock quotes");
         }
     }
 
+    private static void sendBroadcastQuoteError(final Context context) {
+        final Intent intent = new Intent(MainActivity.INTENT_FILTER);
+        intent.putExtra(MainActivity.QUOTE_MESSAGE, MainActivity.ERROR_QUOTE_NOT_FOUND);
+        LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
+    }
+
     private static void schedulePeriodic(Context context) {
         Timber.d("Scheduling a periodic task");
 
-
         JobInfo.Builder builder = new JobInfo.Builder(PERIODIC_ID, new ComponentName(context, QuoteJobService.class));
-
 
         builder.setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
                 .setPeriodic(PERIOD)
                 .setBackoffCriteria(INITIAL_BACKOFF, JobInfo.BACKOFF_POLICY_EXPONENTIAL);
-
 
         JobScheduler scheduler = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
 
         scheduler.schedule(builder.build());
     }
 
-
     public static synchronized void initialize(final Context context) {
 
         schedulePeriodic(context);
         syncImmediately(context);
-
     }
 
     public static synchronized void syncImmediately(Context context) {
@@ -171,18 +173,12 @@ public final class QuoteSyncJob {
 
             JobInfo.Builder builder = new JobInfo.Builder(ONE_OFF_ID, new ComponentName(context, QuoteJobService.class));
 
-
             builder.setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
                     .setBackoffCriteria(INITIAL_BACKOFF, JobInfo.BACKOFF_POLICY_EXPONENTIAL);
-
 
             JobScheduler scheduler = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
 
             scheduler.schedule(builder.build());
-
-
         }
     }
-
-
 }
