@@ -116,7 +116,8 @@ public class StockDetailsActivity extends AppCompatActivity {
 
         final XAxis xAxis = lineChart.getXAxis();
         xAxis.setTypeface(defaultBold);
-        xAxis.setGranularity(1f);
+        xAxis.setGranularity(0.5f);
+        xAxis.setGranularityEnabled(true);
         xAxis.setAxisMinimum(0);
         xAxis.setTextColor(Color.WHITE);
         xAxis.setCenterAxisLabels(false);

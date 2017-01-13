@@ -1,7 +1,9 @@
 package com.udacity.stockhawk.ui;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.database.Cursor;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -9,6 +11,7 @@ import android.os.Bundle;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
@@ -33,6 +36,13 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         SwipeRefreshLayout.OnRefreshListener,
         StockAdapter.StockAdapterOnClickHandler {
 
+    public static final String QUOTE_MESSAGE =
+            "com.udacity.stockhawk.ui.MainActivity.QUOTE_MESSAGE";
+    public static final String ERROR_QUOTE_NOT_FOUND =
+            "com.udacity.stockhawk.ui.MainActivity.ERROR_QUOTE_NOT_FOUND";
+    public static final String INTENT_FILTER =
+            "com.udacity.stockhawk.ui.MainActivity.INTENT_FILTER";
+
     private static final int STOCK_LOADER = 0;
     @SuppressWarnings("WeakerAccess")
     @BindView(R.id.recycler_view)
@@ -44,6 +54,18 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     @BindView(R.id.error)
     TextView error;
     private StockAdapter adapter;
+
+    private BroadcastReceiver messageReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) { 
+            final String message = intent.getStringExtra(QUOTE_MESSAGE);
+
+            if (ERROR_QUOTE_NOT_FOUND.equals(message)) {
+                swipeRefreshLayout.setRefreshing(false);
+                Toast.makeText(context, R.string.error_quote_not_found_message, Toast.LENGTH_LONG).show();
+            }
+        }
+    };
 
     @Override
     public void onClick(String symbol) {
@@ -94,7 +116,15 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
             }
         }).attachToRecyclerView(stockRecyclerView);
 
+        LocalBroadcastManager.getInstance(this).registerReceiver(messageReceiver,
+                new IntentFilter(INTENT_FILTER));
 
+    }
+
+    @Override
+    protected void onDestroy() {
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(messageReceiver);
+        super.onDestroy();
     }
 
     private boolean networkUp() {

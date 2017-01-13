@@ -8,9 +8,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.support.v4.content.LocalBroadcastManager;
 
 import com.udacity.stockhawk.data.Contract;
 import com.udacity.stockhawk.data.PrefUtils;
+import com.udacity.stockhawk.ui.MainActivity;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -54,15 +56,29 @@ public final class QuoteSyncJob {
             Set<String> stockCopy = new HashSet<>();
             stockCopy.addAll(stockPref);
             String[] stockArray = stockPref.toArray(new String[stockPref.size()]);
-
+            int stockLength = stockArray.length;
             Timber.d(stockCopy.toString());
 
-            if (stockArray.length == 0) {
+            if (stockLength == 0) {
                 return;
             }
 
             Map<String, Stock> quotes = YahooFinance.get(stockArray);
             Iterator<String> iterator = stockCopy.iterator();
+
+            if (quotes.size() != stockLength) {
+
+                for (String symbol : stockArray) {
+                    if (!quotes.containsKey(symbol)) {
+                        PrefUtils.removeStock(context, symbol);
+                    }
+                }
+
+                final Intent intent = new Intent(MainActivity.INTENT_FILTER);
+                intent.putExtra(MainActivity.QUOTE_MESSAGE, MainActivity.ERROR_QUOTE_NOT_FOUND);
+                LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
+                return;
+            }
 
             Timber.d(quotes.toString());
 
